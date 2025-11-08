@@ -2,6 +2,7 @@ import CONSTANTS from '@/lib/constants'
 import './globals.css'
 import Navbar from '@/components/nav-bar/Navbar'
 import Providers from '@/components/Providers'
+import { Analytics } from '@vercel/analytics/next'
 import React from 'react'
 
 export default function Layout({ children }: React.PropsWithChildren) {
@@ -21,6 +22,7 @@ export default function Layout({ children }: React.PropsWithChildren) {
             </div>
           </Providers>
         </div>
+        <Analytics />
       </body>
     </html>
   )
