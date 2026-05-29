@@ -20,7 +20,7 @@ CREATE TABLE sessions (
 
 CREATE TABLE locations (
     id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id    UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
     name       TEXT NOT NULL,
     lat        FLOAT8 NOT NULL,
     lon        FLOAT8 NOT NULL,
