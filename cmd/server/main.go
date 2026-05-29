@@ -9,6 +9,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/samson/tidal-weather-clock/internal/auth"
 	"github.com/samson/tidal-weather-clock/internal/db"
+	"github.com/samson/tidal-weather-clock/internal/handler"
 	"github.com/samson/tidal-weather-clock/internal/mailer"
 )
 
@@ -26,6 +27,7 @@ func main() {
 	queries := db.New(database)
 	m := &mailer.LogMailer{}
 	authHandler := auth.NewHandler(queries, m)
+	activityHandler := handler.NewActivityHandler(queries)
 
 	r := gin.Default()
 	r.Use(auth.SessionMiddleware(queries))
@@ -40,6 +42,14 @@ func main() {
 	r.POST("/login", authHandler.RequestLink)
 	r.GET("/auth/verify", authHandler.VerifyToken)
 	r.POST("/auth/logout", authHandler.Logout)
+
+	protected := r.Group("/", auth.RequireAuth)
+	{
+		protected.GET("/activities", activityHandler.List)
+		protected.POST("/activities", activityHandler.Create)
+		protected.PUT("/activities/:id", activityHandler.Update)
+		protected.DELETE("/activities/:id", activityHandler.Delete)
+	}
 
 	port := os.Getenv("PORT")
 	if port == "" {
