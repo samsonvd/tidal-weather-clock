@@ -81,6 +81,12 @@ func (h *DayHandler) Show(c *gin.Context) {
 		HasData:  len(hours) > 0,
 	}
 
+	if c.GetHeader("Content-Type") == "application/json" {
+		c.Header("Content-Type", "application/json")
+		c.JSON(http.StatusOK, data)
+		return
+	}
+
 	c.Header("Content-Type", "text/html")
 	templates.DayView(data).Render(c.Request.Context(), c.Writer)
 }
