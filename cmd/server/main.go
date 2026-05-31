@@ -33,6 +33,7 @@ func main() {
 	activityHandler := handler.NewActivityHandler(queries)
 	locationHandler := handler.NewLocationHandler(queries, fetchSvc)
 	dayHandler := handler.NewDayHandler(queries)
+	settingsHandler := handler.NewSettingsHandler(queries)
 
 	r := gin.Default()
 	r.Use(auth.SessionMiddleware(queries))
@@ -56,6 +57,18 @@ func main() {
 	{
 		protected.GET("/setup/location", locationHandler.SetupPage)
 		protected.POST("/setup/location", locationHandler.SaveLocation)
+
+		protected.GET("/settings/activities", settingsHandler.ListActivities)
+		protected.GET("/settings/activities/new", settingsHandler.NewActivity)
+		protected.POST("/settings/activities", settingsHandler.CreateActivity)
+		protected.GET("/settings/activities/:id/edit", settingsHandler.EditActivity)
+		protected.POST("/settings/activities/:id", settingsHandler.UpdateActivity)
+		protected.DELETE("/settings/activities/:id", settingsHandler.DeleteActivity)
+
+		protected.GET("/settings/constraint/row", settingsHandler.ConstraintRowFragment)
+		protected.GET("/settings/constraint/fields", settingsHandler.ConstraintFieldsFragment)
+
+		// Legacy JSON API kept for potential future use.
 		protected.GET("/activities", activityHandler.List)
 		protected.POST("/activities", activityHandler.Create)
 		protected.PUT("/activities/:id", activityHandler.Update)

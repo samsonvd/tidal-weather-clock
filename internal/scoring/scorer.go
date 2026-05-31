@@ -56,6 +56,41 @@ func consecutive(hours []domain.HourlyData) bool {
 	return true
 }
 
+func scoreWindowHourScores(hourScores []float64, c domain.Constraint) ConstraintResult {
+	if len(hourScores) == 0 {
+		return ConstraintResult{
+			Constraint: c,
+			HourScores: hourScores,
+			Score:      0,
+			Passed:     !c.Required,
+		}
+	}
+
+	var windowScore float64
+	if c.Required {
+		// Required: worst hour determines the window score.
+		windowScore = hourScores[0]
+		for _, s := range hourScores[1:] {
+			if s < windowScore {
+				windowScore = s
+			}
+		}
+	} else {
+		// Preferred: average across hours so one bad hour doesn't zero the score.
+		sum := 0.0
+		for _, s := range hourScores {
+			sum += s
+		}
+		windowScore = sum / float64(len(hourScores))
+	}
+	return ConstraintResult{
+		Constraint: c,
+		HourScores: hourScores,
+		Score:      windowScore,
+		Passed:     !c.Required || windowScore > 0,
+	}
+}
+
 func scoreWindow(a domain.Activity, hours []domain.HourlyData) ScoredWindow {
 	results := make([]ConstraintResult, len(a.Constraints))
 
@@ -64,18 +99,7 @@ func scoreWindow(a domain.Activity, hours []domain.HourlyData) ScoredWindow {
 		for hi, h := range hours {
 			hourScores[hi] = scoreHour(c, h)
 		}
-		min := hourScores[0]
-		for _, s := range hourScores[1:] {
-			if s < min {
-				min = s
-			}
-		}
-		results[ci] = ConstraintResult{
-			Constraint: c,
-			HourScores: hourScores,
-			Score:      min,
-			Passed:     !c.Required || min > 0,
-		}
+		results[ci] = scoreWindowHourScores(hourScores, c)
 	}
 
 	// Check required constraints.
@@ -87,6 +111,7 @@ func scoreWindow(a domain.Activity, hours []domain.HourlyData) ScoredWindow {
 				Score:             0,
 				Excluded:          true,
 				Activity:          a,
+				Hours:             hours,
 				ConstraintResults: results,
 			}
 		}
@@ -95,10 +120,8 @@ func scoreWindow(a domain.Activity, hours []domain.HourlyData) ScoredWindow {
 	// Weighted average of preferred constraint scores.
 	var totalWeight, weightedSum float64
 	for _, cr := range results {
-		if !cr.Constraint.Required {
-			totalWeight += cr.Constraint.Weight
-			weightedSum += cr.Score * cr.Constraint.Weight
-		}
+		totalWeight += cr.Constraint.Weight
+		weightedSum += cr.Score * cr.Constraint.Weight
 	}
 
 	var score float64
@@ -112,6 +135,7 @@ func scoreWindow(a domain.Activity, hours []domain.HourlyData) ScoredWindow {
 		Score:             score,
 		Excluded:          false,
 		Activity:          a,
+		Hours:             hours,
 		ConstraintResults: results,
 	}
 }

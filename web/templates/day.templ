@@ -56,7 +56,7 @@ templ DayView(data DayViewData) {
 									<tr>
 										<td>{ formatTime(h.Time) }</td>
 										<td>{ weatherLabel(h.Weather) }</td>
-										<td>{ fmt.Sprintf("%.1f m/s %s", h.WindSpeedMS, compassPoint(h.WindDirDeg)) }</td>
+										<td>{ formatWind(h.WindSpeedMS, h.WindDirDeg) }</td>
 										<td>{ fmt.Sprintf("%.2fm", h.TideHeightM) }</td>
 									</tr>
 								}
@@ -94,32 +94,36 @@ templ windowCard(w scoring.ScoredWindow) {
 		</header>
 		<details>
 			<summary>Constraint details</summary>
-			<table>
-				<thead>
-					<tr>
-						<th>Type</th>
-						<th>Required</th>
-						<th>Score</th>
-						<th>Per hour</th>
-					</tr>
-				</thead>
-				<tbody>
-					for _, cr := range w.ConstraintResults {
+			for _, cr := range w.ConstraintResults {
+				<table style="margin-bottom:1rem">
+					<thead>
 						<tr>
-							<td>{ string(cr.Constraint.Type) }</td>
-							<td>
-								if cr.Constraint.Required {
-									✓
-								} else {
-									–
-								}
-							</td>
-							<td>{ scorePercent(cr.Score) }</td>
-							<td><small>{ formatHourScores(cr.HourScores) }</small></td>
+							<th colspan="3">
+								{ string(cr.Constraint.Type) }
+								<small>· { formatBool(cr.Constraint.Required, "required", "preferred") } (w={ fmt.Sprintf("%.1f", cr.Constraint.Weight) })</small>
+								<span style="float:right">{ scorePercent(cr.Score) }</span>
+							</th>
 						</tr>
-					}
-				</tbody>
-			</table>
+						<tr>
+							<th colspan="3"><small style="font-weight:normal; opacity:0.7">{ formatConstraintConfig(cr.Constraint) }</small></th>
+						</tr>
+						<tr>
+							<th>Hour</th>
+							<th>Actual</th>
+							<th>Score</th>
+						</tr>
+					</thead>
+					<tbody>
+						for i, h := range w.Hours {
+							<tr>
+								<td>{ formatTime(h.Time) }</td>
+								<td>{ formatConstraintValue(cr.Constraint.Type, h) }</td>
+								<td>{ scorePercent(cr.HourScores[i]) }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
 		</details>
 	</article>
 }

@@ -1,0 +1,123 @@
+package templates
+
+import (
+	"fmt"
+	"github.com/samson/tidal-weather-clock/internal/domain"
+)
+
+templ ActivityForm(user *domain.User, activity *domain.Activity, isEdit bool) {
+	@Layout(activityFormTitle(isEdit)) {
+		<header class="container-fluid">
+			<nav>
+				<ul>
+					<li><a href="/settings/activities">← Activities</a></li>
+				</ul>
+				<ul>
+					<li><strong>{ activityFormTitle(isEdit) }</strong></li>
+				</ul>
+				<ul></ul>
+			</nav>
+		</header>
+		<main class="container">
+			<form method="post" action={ templ.SafeURL(activityFormAction(activity, isEdit)) }>
+				<label>
+					Name
+					<input type="text" name="name" value={ activityName(activity) } required autofocus/>
+				</label>
+				<div class="grid">
+					<label>
+						Duration (hours)
+						<input
+							type="number"
+							name="duration_hrs"
+							min="1"
+							max="24"
+							value={ fmt.Sprintf("%d", activityDuration(activity)) }
+							required
+						/>
+					</label>
+					<label>
+						Window start
+						<select name="window_start">
+							for h := 0; h <= 23; h++ {
+								<option value={ fmt.Sprintf("%d", h) } selected?={ activityWindowStart(activity) == h }>{ formatHour(h) }</option>
+							}
+						</select>
+					</label>
+					<label>
+						Window end
+						<select name="window_end">
+							for h := 0; h <= 23; h++ {
+								<option value={ fmt.Sprintf("%d", h) } selected?={ activityWindowEnd(activity) == h }>{ formatHour(h) }</option>
+							}
+						</select>
+					</label>
+				</div>
+				<hr/>
+				<h3>Constraints</h3>
+				<div id="constraints-container">
+					if activity != nil {
+						for i, c := range activity.Constraints {
+							@ConstraintRow(i, &c)
+						}
+					}
+				</div>
+				<button
+					type="button"
+					class="outline"
+					hx-get="/settings/constraint/row"
+					hx-target="#constraints-container"
+					hx-swap="beforeend"
+					hx-vals="js:{index: document.querySelectorAll('.constraint-row').length}"
+				>+ Add constraint</button>
+				<hr/>
+				<div style="display:flex; gap:1rem">
+					<button type="submit">Save</button>
+					<a href="/settings/activities" role="button" class="outline secondary">Cancel</a>
+				</div>
+			</form>
+		</main>
+	}
+}
+
+func activityFormTitle(isEdit bool) string {
+	if isEdit {
+		return "Edit activity"
+	}
+	return "New activity"
+}
+
+func activityFormAction(a *domain.Activity, isEdit bool) string {
+	if isEdit && a != nil {
+		return "/settings/activities/" + a.ID.String()
+	}
+	return "/settings/activities"
+}
+
+func activityName(a *domain.Activity) string {
+	if a != nil {
+		return a.Name
+	}
+	return ""
+}
+
+func activityDuration(a *domain.Activity) int {
+	if a != nil {
+		return a.DurationHrs
+	}
+	return 2
+}
+
+func activityWindowStart(a *domain.Activity) int {
+	if a != nil {
+		return a.WindowStart
+	}
+	return 8
+}
+
+func activityWindowEnd(a *domain.Activity) int {
+	if a != nil {
+		return a.WindowEnd
+	}
+	return 18
+}

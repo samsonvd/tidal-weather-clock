@@ -42,7 +42,7 @@ func Layout(title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, " — Tidal Weather Clock</title><link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css\"></head><body>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, " — Tidal Weather Clock</title><link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css\"><script src=\"https://unpkg.com/htmx.org@2/dist/htmx.min.js\"></script><script>\n\t\t\t\tfunction bfFromKts(kts) {\n\t\t\t\t\tconst ms = kts * 0.514444;\n\t\t\t\t\tif (ms < 0.3) return 0; if (ms < 1.6) return 1; if (ms < 3.4) return 2;\n\t\t\t\t\tif (ms < 5.5) return 3; if (ms < 8.0) return 4; if (ms < 10.8) return 5;\n\t\t\t\t\tif (ms < 13.9) return 6; if (ms < 17.2) return 7; if (ms < 20.8) return 8;\n\t\t\t\t\tif (ms < 24.5) return 9; if (ms < 28.5) return 10; if (ms < 32.7) return 11;\n\t\t\t\t\treturn 12;\n\t\t\t\t}\n\t\t\t\tfunction updateBf(el) {\n\t\t\t\t\tconst hint = document.getElementById(el.dataset.bfHint);\n\t\t\t\t\tif (hint) hint.textContent = 'F' + bfFromKts(parseFloat(el.value) || 0);\n\t\t\t\t}\n\t\t\t\tfunction initBfHints(root) {\n\t\t\t\t\t(root || document).querySelectorAll('[data-bf-hint]').forEach(updateBf);\n\t\t\t\t}\n\t\t\t\tdocument.addEventListener('DOMContentLoaded', () => initBfHints());\n\t\t\t\tdocument.addEventListener('htmx:afterSwap', e => initBfHints(e.detail.elt));\n\t\t\t</script></head><body>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

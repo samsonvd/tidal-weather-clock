@@ -19,5 +19,6 @@ type ScoredWindow struct {
 	Score             float64   // 0.0–1.0; 0 if excluded
 	Excluded          bool      // true if any required constraint failed
 	Activity          domain.Activity
+	Hours             []domain.HourlyData
 	ConstraintResults []ConstraintResult
 }

@@ -37,13 +37,13 @@ func TestScoreDirection(t *testing.T) {
 		tolerance float64
 		want      float64
 	}{
-		{180, []float64{180}, 22.5, 1.0},           // exact match
-		{190, []float64{180}, 22.5, 1.0},           // within tolerance
-		{210, []float64{180}, 22.5, 0.0},           // outside tolerance
-		{5, []float64{350}, 20, 1.0},               // wraparound: 5 is 15deg from 350
-		{355, []float64{10}, 20, 1.0},              // wraparound other direction
-		{90, []float64{180, 270}, 22.5, 0.0},       // no match
-		{270, []float64{180, 270}, 22.5, 1.0},      // matches second preferred
+		{180, []float64{180}, 22.5, 1.0},      // exact match
+		{190, []float64{180}, 22.5, 1.0},      // within tolerance
+		{210, []float64{180}, 22.5, 0.0},      // outside tolerance
+		{5, []float64{350}, 20, 1.0},          // wraparound: 5 is 15deg from 350
+		{355, []float64{10}, 20, 1.0},         // wraparound other direction
+		{90, []float64{180, 270}, 22.5, 0.0},  // no match
+		{270, []float64{180, 270}, 22.5, 1.0}, // matches second preferred
 	}
 	for _, tt := range tests {
 		got := scoreDirection(tt.dir, tt.preferred, tt.tolerance)
@@ -130,5 +130,76 @@ func TestScoreDayRequiredConstraint(t *testing.T) {
 		if !w.Excluded {
 			t.Errorf("expected all windows excluded due to rain, got score %v", w.Score)
 		}
+	}
+}
+
+func TestPreferredConstraintUsesAverage(t *testing.T) {
+	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	// 2-hour window: hour 1 scores 1.0, hour 2 scores 0.0 on the preferred constraint.
+	hours := []domain.HourlyData{
+		{Time: base.Add(10 * time.Hour), WindSpeedMS: 5},  // inside ideal
+		{Time: base.Add(11 * time.Hour), WindSpeedMS: 50}, // way outside acceptable
+	}
+	activity := domain.Activity{
+		ID:          uuid.New(),
+		Name:        "Test",
+		DurationHrs: 2,
+		WindowStart: 10,
+		WindowEnd:   11,
+		Constraints: []domain.Constraint{
+			{
+				Type:          domain.ConstraintWindSpeed,
+				Required:      false,
+				Weight:        1.0,
+				AcceptableMin: 0,
+				IdealMin:      3,
+				IdealMax:      8,
+				AcceptableMax: 15,
+			},
+		},
+	}
+
+	results := ScoreDay([]domain.Activity{activity}, hours)
+	if len(results) == 0 {
+		t.Fatal("expected at least one window")
+	}
+	w := results[0]
+	if w.Excluded {
+		t.Fatal("window should not be excluded — constraint is preferred")
+	}
+	// Average of 1.0 and 0.0 = 0.5; score should not be 0.
+	if w.Score == 0 {
+		t.Errorf("preferred constraint with one bad hour should not produce score 0, got %v", w.Score)
+	}
+	if w.Score != 0.5 {
+		t.Errorf("expected score 0.5 (average of 1.0 and 0.0), got %v", w.Score)
+	}
+}
+
+func TestScoreWindowHourScores(t *testing.T) {
+	tests := []struct {
+		name           string
+		hourScores     []float64
+		c              domain.Constraint
+		expectedScore  float64
+		expectedPassed bool
+	}{
+		{name: "average over optional", hourScores: []float64{1.0, 0.0}, c: domain.Constraint{Required: false}, expectedScore: 0.5, expectedPassed: true},
+		{name: "average over optional where all 0", hourScores: []float64{0.0, 0.0}, c: domain.Constraint{Required: false}, expectedScore: 0.0, expectedPassed: true},
+		{name: "minimum value over required", hourScores: []float64{1.0, 0.0}, c: domain.Constraint{Required: true}, expectedScore: 0.0, expectedPassed: false},
+		{name: "optional empty scores", hourScores: []float64{}, c: domain.Constraint{Required: false}, expectedScore: 0, expectedPassed: true},
+		{name: "required empty scores", hourScores: []float64{}, c: domain.Constraint{Required: true}, expectedScore: 0, expectedPassed: false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(tt *testing.T) {
+			result := scoreWindowHourScores(test.hourScores, test.c)
+			if result.Score != test.expectedScore {
+				tt.Errorf("expected score %v, got %v", test.expectedScore, result.Score)
+			}
+			if result.Passed != test.expectedPassed {
+				tt.Errorf("expected passed %v, got %v", test.expectedPassed, result.Passed)
+			}
+		})
 	}
 }
