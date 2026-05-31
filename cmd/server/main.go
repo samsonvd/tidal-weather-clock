@@ -77,7 +77,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "8000"
 	}
 	log.Printf("starting server on :%s", port)
 	if err := r.Run(":" + port); err != nil {
