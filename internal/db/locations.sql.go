@@ -11,19 +11,83 @@ import (
 	"github.com/google/uuid"
 )
 
-const ensureLocation = `-- name: EnsureLocation :exec
-INSERT INTO locations (user_id, name, lat, lon)
-VALUES ($1, 'Burnham Overy Staithe', 52.963583, 0.74417)
-ON CONFLICT (user_id) DO NOTHING
+const createLocation = `-- name: CreateLocation :one
+INSERT INTO locations (user_id, name, lat, lon, tide_station_id)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (user_id) DO UPDATE SET
+    name           = EXCLUDED.name,
+    lat            = EXCLUDED.lat,
+    lon            = EXCLUDED.lon,
+    tide_station_id = EXCLUDED.tide_station_id
+RETURNING id, user_id, name, lat, lon, created_at, tide_station_id
 `
 
-func (q *Queries) EnsureLocation(ctx context.Context, userID uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, ensureLocation, userID)
-	return err
+type CreateLocationParams struct {
+	UserID        uuid.UUID `json:"user_id"`
+	Name          string    `json:"name"`
+	Lat           float64   `json:"lat"`
+	Lon           float64   `json:"lon"`
+	TideStationID string    `json:"tide_station_id"`
+}
+
+func (q *Queries) CreateLocation(ctx context.Context, arg CreateLocationParams) (Location, error) {
+	row := q.db.QueryRowContext(ctx, createLocation,
+		arg.UserID,
+		arg.Name,
+		arg.Lat,
+		arg.Lon,
+		arg.TideStationID,
+	)
+	var i Location
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.Lat,
+		&i.Lon,
+		&i.CreatedAt,
+		&i.TideStationID,
+	)
+	return i, err
+}
+
+const getAllLocations = `-- name: GetAllLocations :many
+SELECT id, user_id, name, lat, lon, created_at, tide_station_id FROM locations
+`
+
+func (q *Queries) GetAllLocations(ctx context.Context) ([]Location, error) {
+	rows, err := q.db.QueryContext(ctx, getAllLocations)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Location
+	for rows.Next() {
+		var i Location
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Name,
+			&i.Lat,
+			&i.Lon,
+			&i.CreatedAt,
+			&i.TideStationID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getLocationByUser = `-- name: GetLocationByUser :one
-SELECT id, user_id, name, lat, lon, created_at FROM locations WHERE user_id = $1 LIMIT 1
+SELECT id, user_id, name, lat, lon, created_at, tide_station_id FROM locations WHERE user_id = $1 LIMIT 1
 `
 
 func (q *Queries) GetLocationByUser(ctx context.Context, userID uuid.UUID) (Location, error) {
@@ -36,6 +100,7 @@ func (q *Queries) GetLocationByUser(ctx context.Context, userID uuid.UUID) (Loca
 		&i.Lat,
 		&i.Lon,
 		&i.CreatedAt,
+		&i.TideStationID,
 	)
 	return i, err
 }

@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
 	"os"
 	"time"
@@ -94,13 +96,18 @@ func (h *Handler) VerifyToken(c *gin.Context) {
 		return
 	}
 
-	if err := h.db.EnsureLocation(c.Request.Context(), link.UserID); err != nil {
+	secure := os.Getenv("APP_ENV") != "development"
+	c.SetCookie(sessionCookie, sessionToken, int(sessionExpiry.Seconds()), "/", "", secure, true)
+
+	_, err = h.db.GetLocationByUser(c.Request.Context(), link.UserID)
+	if errors.Is(err, sql.ErrNoRows) {
+		c.Redirect(http.StatusSeeOther, "/setup/location")
+		return
+	}
+	if err != nil {
 		c.String(http.StatusInternalServerError, "internal error")
 		return
 	}
-
-	secure := os.Getenv("APP_ENV") != "development"
-	c.SetCookie(sessionCookie, sessionToken, int(sessionExpiry.Seconds()), "/", "", secure, true)
 	c.Redirect(http.StatusSeeOther, "/")
 }
 

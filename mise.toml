@@ -10,8 +10,8 @@ golangci-lint = "latest"
 "go:github.com/golang-migrate/migrate/v4/cmd/migrate" = { version = "latest", tags = "postgres" }
 
 [tasks.build]
-run = "go build -o bin/server ./cmd/server"
-description = "Build the server binary"
+run = ["go build -o bin/server ./cmd/server", "go build -o bin/fetch ./cmd/fetch"]
+description = "Build server and fetch binaries"
 
 [tasks.start]
 depends = ["build"]
@@ -33,6 +33,10 @@ description = "Run linter"
 [tasks.generate]
 run = ["sqlc generate", "templ generate"]
 description = "Run sqlc and templ code generation"
+
+[tasks.fetch]
+run = "go run ./cmd/fetch"
+description = "Fetch weather and tide data for all locations"
 
 [tasks."db:start"]
 run = "docker compose up -d"

@@ -35,12 +35,13 @@ type HourlyDatum struct {
 }
 
 type Location struct {
-	ID        uuid.UUID `json:"id"`
-	UserID    uuid.UUID `json:"user_id"`
-	Name      string    `json:"name"`
-	Lat       float64   `json:"lat"`
-	Lon       float64   `json:"lon"`
-	CreatedAt time.Time `json:"created_at"`
+	ID            uuid.UUID `json:"id"`
+	UserID        uuid.UUID `json:"user_id"`
+	Name          string    `json:"name"`
+	Lat           float64   `json:"lat"`
+	Lon           float64   `json:"lon"`
+	CreatedAt     time.Time `json:"created_at"`
+	TideStationID string    `json:"tide_station_id"`
 }
 
 type MagicLink struct {

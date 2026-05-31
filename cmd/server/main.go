@@ -28,6 +28,7 @@ func main() {
 	m := &mailer.LogMailer{}
 	authHandler := auth.NewHandler(queries, m)
 	activityHandler := handler.NewActivityHandler(queries)
+	locationHandler := handler.NewLocationHandler(queries)
 
 	r := gin.Default()
 	r.Use(auth.SessionMiddleware(queries))
@@ -45,6 +46,8 @@ func main() {
 
 	protected := r.Group("/", auth.RequireAuth)
 	{
+		protected.GET("/setup/location", locationHandler.SetupPage)
+		protected.POST("/setup/location", locationHandler.SaveLocation)
 		protected.GET("/activities", activityHandler.List)
 		protected.POST("/activities", activityHandler.Create)
 		protected.PUT("/activities/:id", activityHandler.Update)
