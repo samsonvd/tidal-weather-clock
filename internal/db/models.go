@@ -36,7 +36,6 @@ type HourlyDatum struct {
 
 type Location struct {
 	ID            uuid.UUID `json:"id"`
-	UserID        uuid.UUID `json:"user_id"`
 	Name          string    `json:"name"`
 	Lat           float64   `json:"lat"`
 	Lon           float64   `json:"lon"`
@@ -62,4 +61,9 @@ type User struct {
 	ID        uuid.UUID `json:"id"`
 	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type UserLocation struct {
+	UserID     uuid.UUID `json:"user_id"`
+	LocationID uuid.UUID `json:"location_id"`
 }

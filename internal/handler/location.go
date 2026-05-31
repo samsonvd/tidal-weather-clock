@@ -1,7 +1,12 @@
 package handler
 
 import (
+	"context"
+	"database/sql"
+	"errors"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/samson/tidal-weather-clock/internal/auth"
@@ -11,11 +16,12 @@ import (
 )
 
 type LocationHandler struct {
-	db *db.Queries
+	db      *db.Queries
+	fetcher *fetcher.Service
 }
 
-func NewLocationHandler(queries *db.Queries) *LocationHandler {
-	return &LocationHandler{db: queries}
+func NewLocationHandler(queries *db.Queries, svc *fetcher.Service) *LocationHandler {
+	return &LocationHandler{db: queries, fetcher: svc}
 }
 
 func (h *LocationHandler) SetupPage(c *gin.Context) {
@@ -55,15 +61,49 @@ func (h *LocationHandler) SaveLocation(c *gin.Context) {
 		return
 	}
 
-	if _, err := h.db.CreateLocation(c.Request.Context(), db.CreateLocationParams{
-		UserID:        user.ID,
-		Name:          chosen.Name,
-		Lat:           chosen.Lat,
-		Lon:           chosen.Lon,
-		TideStationID: chosen.ID,
+	ctx := c.Request.Context()
+
+	// Find existing location record for this station, or create one.
+	isNew := false
+	loc, err := h.db.GetLocationByStationID(ctx, chosen.ID)
+	if errors.Is(err, sql.ErrNoRows) {
+		loc, err = h.db.CreateLocation(ctx, db.CreateLocationParams{
+			Name:          chosen.Name,
+			Lat:           chosen.Lat,
+			Lon:           chosen.Lon,
+			TideStationID: chosen.ID,
+		})
+		if err != nil {
+			c.String(http.StatusInternalServerError, "internal error")
+			return
+		}
+		isNew = true
+	} else if err != nil {
+		c.String(http.StatusInternalServerError, "internal error")
+		return
+	}
+
+	// Replace user's current location link.
+	if err := h.db.DeleteUserLocations(ctx, user.ID); err != nil {
+		c.String(http.StatusInternalServerError, "internal error")
+		return
+	}
+	if err := h.db.LinkUserLocation(ctx, db.LinkUserLocationParams{
+		UserID:     user.ID,
+		LocationID: loc.ID,
 	}); err != nil {
 		c.String(http.StatusInternalServerError, "internal error")
 		return
+	}
+
+	// Populate data for newly added locations so the home page isn't empty.
+	if isNew {
+		fetchCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := h.fetcher.FetchForLocation(fetchCtx, loc); err != nil {
+			log.Printf("ad-hoc fetch for location %s: %v", loc.Name, err)
+			// Non-fatal: user can still see the page, data will arrive on next nightly run.
+		}
 	}
 
 	c.Redirect(http.StatusSeeOther, "/")

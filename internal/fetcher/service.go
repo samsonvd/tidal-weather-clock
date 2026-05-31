@@ -30,14 +30,14 @@ func (s *Service) FetchAllLocations(ctx context.Context) error {
 	}
 	for _, loc := range locations {
 		log.Printf("fetching data for %s", loc.Name)
-		if err := s.fetchForLocation(ctx, loc); err != nil {
+		if err := s.FetchForLocation(ctx, loc); err != nil {
 			return fmt.Errorf("fetch for location %s: %w", loc.Name, err)
 		}
 	}
 	return nil
 }
 
-func (s *Service) fetchForLocation(ctx context.Context, loc db.Location) error {
+func (s *Service) FetchForLocation(ctx context.Context, loc db.Location) error {
 	if err := s.fetchTides(ctx, loc); err != nil {
 		return fmt.Errorf("tides: %w", err)
 	}

@@ -9,8 +9,10 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/samson/tidal-weather-clock/internal/auth"
 	"github.com/samson/tidal-weather-clock/internal/db"
+	"github.com/samson/tidal-weather-clock/internal/fetcher"
 	"github.com/samson/tidal-weather-clock/internal/handler"
 	"github.com/samson/tidal-weather-clock/internal/mailer"
+	"github.com/samson/tidal-weather-clock/web/templates"
 )
 
 func main() {
@@ -25,10 +27,12 @@ func main() {
 	}
 
 	queries := db.New(database)
+	fetchSvc := fetcher.NewService(queries)
 	m := &mailer.LogMailer{}
 	authHandler := auth.NewHandler(queries, m)
 	activityHandler := handler.NewActivityHandler(queries)
-	locationHandler := handler.NewLocationHandler(queries)
+	locationHandler := handler.NewLocationHandler(queries, fetchSvc)
+	dayHandler := handler.NewDayHandler(queries)
 
 	r := gin.Default()
 	r.Use(auth.SessionMiddleware(queries))
@@ -37,8 +41,12 @@ func main() {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
+	r.GET("/", dayHandler.Show)
+	r.GET("/day/:date", dayHandler.Show)
+
 	r.GET("/login", func(c *gin.Context) {
-		c.String(200, "login page — sent=%s error=%s", c.Query("sent"), c.Query("error"))
+		c.Header("Content-Type", "text/html")
+		templates.Login(c.Query("sent") == "true", c.Query("error") != "").Render(c.Request.Context(), c.Writer)
 	})
 	r.POST("/login", authHandler.RequestLink)
 	r.GET("/auth/verify", authHandler.VerifyToken)

@@ -12,27 +12,20 @@ import (
 )
 
 const createLocation = `-- name: CreateLocation :one
-INSERT INTO locations (user_id, name, lat, lon, tide_station_id)
-VALUES ($1, $2, $3, $4, $5)
-ON CONFLICT (user_id) DO UPDATE SET
-    name           = EXCLUDED.name,
-    lat            = EXCLUDED.lat,
-    lon            = EXCLUDED.lon,
-    tide_station_id = EXCLUDED.tide_station_id
-RETURNING id, user_id, name, lat, lon, created_at, tide_station_id
+INSERT INTO locations (name, lat, lon, tide_station_id)
+VALUES ($1, $2, $3, $4)
+RETURNING id, name, lat, lon, created_at, tide_station_id
 `
 
 type CreateLocationParams struct {
-	UserID        uuid.UUID `json:"user_id"`
-	Name          string    `json:"name"`
-	Lat           float64   `json:"lat"`
-	Lon           float64   `json:"lon"`
-	TideStationID string    `json:"tide_station_id"`
+	Name          string  `json:"name"`
+	Lat           float64 `json:"lat"`
+	Lon           float64 `json:"lon"`
+	TideStationID string  `json:"tide_station_id"`
 }
 
 func (q *Queries) CreateLocation(ctx context.Context, arg CreateLocationParams) (Location, error) {
 	row := q.db.QueryRowContext(ctx, createLocation,
-		arg.UserID,
 		arg.Name,
 		arg.Lat,
 		arg.Lon,
@@ -41,7 +34,6 @@ func (q *Queries) CreateLocation(ctx context.Context, arg CreateLocationParams) 
 	var i Location
 	err := row.Scan(
 		&i.ID,
-		&i.UserID,
 		&i.Name,
 		&i.Lat,
 		&i.Lon,
@@ -51,8 +43,17 @@ func (q *Queries) CreateLocation(ctx context.Context, arg CreateLocationParams) 
 	return i, err
 }
 
+const deleteUserLocations = `-- name: DeleteUserLocations :exec
+DELETE FROM user_locations WHERE user_id = $1
+`
+
+func (q *Queries) DeleteUserLocations(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteUserLocations, userID)
+	return err
+}
+
 const getAllLocations = `-- name: GetAllLocations :many
-SELECT id, user_id, name, lat, lon, created_at, tide_station_id FROM locations
+SELECT id, name, lat, lon, created_at, tide_station_id FROM locations
 `
 
 func (q *Queries) GetAllLocations(ctx context.Context) ([]Location, error) {
@@ -66,7 +67,6 @@ func (q *Queries) GetAllLocations(ctx context.Context) ([]Location, error) {
 		var i Location
 		if err := rows.Scan(
 			&i.ID,
-			&i.UserID,
 			&i.Name,
 			&i.Lat,
 			&i.Lon,
@@ -86,16 +86,15 @@ func (q *Queries) GetAllLocations(ctx context.Context) ([]Location, error) {
 	return items, nil
 }
 
-const getLocationByUser = `-- name: GetLocationByUser :one
-SELECT id, user_id, name, lat, lon, created_at, tide_station_id FROM locations WHERE user_id = $1 LIMIT 1
+const getLocationByStationID = `-- name: GetLocationByStationID :one
+SELECT id, name, lat, lon, created_at, tide_station_id FROM locations WHERE tide_station_id = $1
 `
 
-func (q *Queries) GetLocationByUser(ctx context.Context, userID uuid.UUID) (Location, error) {
-	row := q.db.QueryRowContext(ctx, getLocationByUser, userID)
+func (q *Queries) GetLocationByStationID(ctx context.Context, tideStationID string) (Location, error) {
+	row := q.db.QueryRowContext(ctx, getLocationByStationID, tideStationID)
 	var i Location
 	err := row.Scan(
 		&i.ID,
-		&i.UserID,
 		&i.Name,
 		&i.Lat,
 		&i.Lon,
@@ -103,4 +102,40 @@ func (q *Queries) GetLocationByUser(ctx context.Context, userID uuid.UUID) (Loca
 		&i.TideStationID,
 	)
 	return i, err
+}
+
+const getLocationByUser = `-- name: GetLocationByUser :one
+SELECT l.id, l.name, l.lat, l.lon, l.created_at, l.tide_station_id FROM locations l
+JOIN user_locations ul ON ul.location_id = l.id
+WHERE ul.user_id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetLocationByUser(ctx context.Context, userID uuid.UUID) (Location, error) {
+	row := q.db.QueryRowContext(ctx, getLocationByUser, userID)
+	var i Location
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Lat,
+		&i.Lon,
+		&i.CreatedAt,
+		&i.TideStationID,
+	)
+	return i, err
+}
+
+const linkUserLocation = `-- name: LinkUserLocation :exec
+INSERT INTO user_locations (user_id, location_id) VALUES ($1, $2)
+ON CONFLICT DO NOTHING
+`
+
+type LinkUserLocationParams struct {
+	UserID     uuid.UUID `json:"user_id"`
+	LocationID uuid.UUID `json:"location_id"`
+}
+
+func (q *Queries) LinkUserLocation(ctx context.Context, arg LinkUserLocationParams) error {
+	_, err := q.db.ExecContext(ctx, linkUserLocation, arg.UserID, arg.LocationID)
+	return err
 }
