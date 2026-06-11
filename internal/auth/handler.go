@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -83,23 +84,27 @@ func (h *Handler) VerifyToken(c *gin.Context) {
 
 	token := c.Query("token")
 	if token == "" {
+		fmt.Fprintln(os.Stderr, "empty token")
 		fail()
 		return
 	}
 
 	link, err := h.db.GetMagicLink(c.Request.Context(), token)
 	if err != nil {
+		fmt.Fprintln(os.Stderr, "error getting magic link", err)
 		fail()
 		return
 	}
 
 	if err := h.db.MarkMagicLinkUsed(c.Request.Context(), link.Token); err != nil {
+		fmt.Fprintln(os.Stderr, "error marking link used", err)
 		fail()
 		return
 	}
 
 	sessionToken, err := generateToken()
 	if err != nil {
+		fmt.Fprintln(os.Stderr, "error generating token", err)
 		fail()
 		return
 	}
@@ -109,6 +114,7 @@ func (h *Handler) VerifyToken(c *gin.Context) {
 		UserID:    link.UserID,
 		ExpiresAt: time.Now().Add(sessionExpiry),
 	}); err != nil {
+		fmt.Fprintln(os.Stderr, "error creating session", err)
 		fail()
 		return
 	}

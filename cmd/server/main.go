@@ -31,6 +31,9 @@ func main() {
 	if appUrl == "" {
 		log.Fatalf("APP_URL not set")
 	}
+	if !strings.HasSuffix(appUrl, "#") {
+		appUrl += "#"
+	}
 
 	queries := db.New(database)
 	fetchSvc := fetcher.NewService(queries)
