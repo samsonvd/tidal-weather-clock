@@ -3,15 +3,33 @@ _.file = [".env", ".env.local"]
 
 [tools]
 go = "1.25"
+node = "22"
+pnpm = "latest"
 golangci-lint = "latest"
 "go:github.com/sqlc-dev/sqlc/cmd/sqlc" = "latest"
 "go:github.com/a-h/templ/cmd/templ" = "latest"
 "go:github.com/air-verse/air" = "latest"
 "go:github.com/golang-migrate/migrate/v4/cmd/migrate" = { version = "latest", tags = "postgres" }
 
+[tasks."frontend:install"]
+dir = "frontend"
+run = "pnpm install"
+description = "Install frontend dependencies"
+
+[tasks."frontend:dev"]
+dir = "frontend"
+run = "pnpm dev"
+description = "Start Vite dev server"
+
+[tasks."frontend:build"]
+dir = "frontend"
+run = "pnpm build"
+description = "Build frontend for production"
+
 [tasks.build]
+depends = ["frontend:build"]
 run = ["go build -o bin/server ./cmd/server", "go build -o bin/fetch ./cmd/fetch"]
-description = "Build server and fetch binaries"
+description = "Build frontend then Go binaries"
 
 [tasks.start]
 depends = ["build"]
