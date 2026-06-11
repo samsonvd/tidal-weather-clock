@@ -29,6 +29,11 @@ func main() {
 		log.Fatalf("ping db: %v", err)
 	}
 
+	apiUrl := os.Getenv("API_URL")
+	if apiUrl == "" {
+		log.Fatalf("API_URL not set")
+	}
+
 	appUrl := os.Getenv("APP_URL")
 	if appUrl == "" {
 		log.Fatalf("APP_URL not set")
@@ -40,9 +45,9 @@ func main() {
 	queries := db.New(database)
 	fetchSvc := fetcher.NewService(queries)
 
-	var mailSvc mailer.Mailer = mailer.NewResendMailer(os.Getenv("RESEND_API_KEY"), appUrl)
+	var mailSvc mailer.Mailer = mailer.NewResendMailer(os.Getenv("RESEND_API_KEY"), apiUrl)
 	if isDevelopment {
-		mailSvc = mailer.NewLogMailer(appUrl)
+		mailSvc = mailer.NewLogMailer(apiUrl)
 	}
 	authHandler := auth.NewHandler(queries, mailSvc, appUrl)
 
