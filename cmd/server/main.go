@@ -16,6 +16,8 @@ import (
 	"github.com/samson/tidal-weather-clock/internal/mailer"
 )
 
+var isDevelopment = os.Getenv("APP_ENV") == "development"
+
 func main() {
 	database, err := sql.Open("pgx", os.Getenv("DATABASE_URL"))
 	if err != nil {
@@ -37,8 +39,13 @@ func main() {
 
 	queries := db.New(database)
 	fetchSvc := fetcher.NewService(queries)
-	m := &mailer.LogMailer{}
-	authHandler := auth.NewHandler(queries, m, appUrl)
+
+	var mailSvc mailer.Mailer = mailer.NewResendMailer(os.Getenv("RESEND_API_KEY"), appUrl)
+	if isDevelopment {
+		mailSvc = mailer.NewLogMailer(appUrl)
+	}
+	authHandler := auth.NewHandler(queries, mailSvc, appUrl)
+
 	activityHandler := handler.NewActivityHandler(queries)
 	locationHandler := handler.NewLocationHandler(queries, fetchSvc)
 	dayHandler := handler.NewDayHandler(queries)
