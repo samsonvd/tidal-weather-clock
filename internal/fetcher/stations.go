@@ -9,16 +9,16 @@ import (
 )
 
 type Station struct {
-	ID      string
-	Name    string
-	Country string
-	Lat     float64
-	Lon     float64
+	ID      string  `json:"id"`
+	Name    string  `json:"name"`
+	Country string  `json:"country"`
+	Lat     float64 `json:"lat"`
+	Lon     float64 `json:"lon"`
 }
 
 type StationGroup struct {
-	Country  string
-	Stations []Station
+	Country  string    `json:"country"`
+	Stations []Station `json:"stations"`
 }
 
 type stationsResponse struct {
