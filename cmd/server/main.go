@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"strings"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/samson/tidal-weather-clock/internal/auth"
@@ -25,15 +27,35 @@ func main() {
 		log.Fatalf("ping db: %v", err)
 	}
 
+	appUrl := os.Getenv("APP_URL")
+	if appUrl == "" {
+		log.Fatalf("APP_URL not set")
+	}
+
 	queries := db.New(database)
 	fetchSvc := fetcher.NewService(queries)
 	m := &mailer.LogMailer{}
-	authHandler := auth.NewHandler(queries, m)
+	authHandler := auth.NewHandler(queries, m, appUrl)
 	activityHandler := handler.NewActivityHandler(queries)
 	locationHandler := handler.NewLocationHandler(queries, fetchSvc)
 	dayHandler := handler.NewDayHandler(queries)
 
 	r := gin.Default()
+
+	var allowedOriginsList []string
+	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+	if allowedOrigins == "" {
+		allowedOriginsList = []string{appUrl} //localhost:5173"
+	} else {
+		allowedOriginsList = strings.Split(allowedOrigins, ",")
+	}
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     allowedOriginsList,
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Content-Type"},
+		AllowCredentials: true,
+	}))
+
 	r.Use(auth.SessionMiddleware(queries))
 
 	r.GET("/health", func(c *gin.Context) {
@@ -63,13 +85,6 @@ func main() {
 		}
 
 	}
-
-	r.Static("/assets", "frontend/dist/assets")
-	r.StaticFile("/favicon.svg", "frontend/dist/favicon.svg")
-	r.StaticFile("/icons.svg", "frontend/dist/icons.svg")
-	r.NoRoute(func(c *gin.Context) {
-		c.File("frontend/dist/index.html")
-	})
 
 	port := os.Getenv("PORT")
 	if port == "" {

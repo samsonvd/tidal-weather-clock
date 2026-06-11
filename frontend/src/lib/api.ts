@@ -1,7 +1,9 @@
 import type { Activity, DayData, Location, StationGroup, User } from '@/types/api'
 
+const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
+  const res = await fetch(BASE + path, {
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     ...options,
@@ -38,4 +40,7 @@ export const api = {
   },
 
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
+
+  requestLink: (email: string) =>
+    request<{ message: string }>('/login', { method: 'POST', body: JSON.stringify({ email }) }),
 }

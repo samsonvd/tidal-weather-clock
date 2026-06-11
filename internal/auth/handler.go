@@ -1,8 +1,6 @@
 package auth
 
 import (
-	"database/sql"
-	"errors"
 	"net/http"
 	"os"
 	"time"
@@ -22,10 +20,11 @@ const (
 type Handler struct {
 	db     *db.Queries
 	mailer mailer.Mailer
+	appUrl string
 }
 
-func NewHandler(queries *db.Queries, m mailer.Mailer) *Handler {
-	return &Handler{db: queries, mailer: m}
+func NewHandler(queries *db.Queries, m mailer.Mailer, appUrl string) *Handler {
+	return &Handler{db: queries, mailer: m, appUrl: appUrl}
 }
 
 func (h *Handler) Me(c *gin.Context) {
@@ -80,26 +79,28 @@ func (h *Handler) RequestLink(c *gin.Context) {
 }
 
 func (h *Handler) VerifyToken(c *gin.Context) {
+	fail := func() { c.Redirect(http.StatusSeeOther, h.appUrl+"/login?error=invalid") }
+
 	token := c.Query("token")
 	if token == "" {
-		c.Redirect(http.StatusSeeOther, "/login?error=invalid")
+		fail()
 		return
 	}
 
 	link, err := h.db.GetMagicLink(c.Request.Context(), token)
 	if err != nil {
-		c.Redirect(http.StatusSeeOther, "/login?error=invalid")
+		fail()
 		return
 	}
 
 	if err := h.db.MarkMagicLinkUsed(c.Request.Context(), link.Token); err != nil {
-		c.Redirect(http.StatusSeeOther, "/login?error=invalid")
+		fail()
 		return
 	}
 
 	sessionToken, err := generateToken()
 	if err != nil {
-		c.Redirect(http.StatusSeeOther, "/login?error=invalid")
+		fail()
 		return
 	}
 
@@ -108,19 +109,14 @@ func (h *Handler) VerifyToken(c *gin.Context) {
 		UserID:    link.UserID,
 		ExpiresAt: time.Now().Add(sessionExpiry),
 	}); err != nil {
-		c.Redirect(http.StatusSeeOther, "/login?error=invalid")
+		fail()
 		return
 	}
 
 	secure := os.Getenv("APP_ENV") != "development"
 	c.SetCookie(sessionCookie, sessionToken, int(sessionExpiry.Seconds()), "/", "", secure, true)
 
-	_, err = h.db.GetLocationByUser(c.Request.Context(), link.UserID)
-	if errors.Is(err, sql.ErrNoRows) {
-		c.Redirect(http.StatusSeeOther, "/setup/location")
-		return
-	}
-	c.Redirect(http.StatusSeeOther, "/")
+	c.Redirect(http.StatusSeeOther, h.appUrl+"/")
 }
 
 func (h *Handler) Logout(c *gin.Context) {

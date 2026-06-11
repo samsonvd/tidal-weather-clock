@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { createFileRoute, Navigate } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { localDateStr } from '@/lib/format'
+import { api } from '@/lib/api'
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
@@ -21,13 +21,7 @@ function LoginPage() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-        credentials: 'include',
-      })
-      if (!res.ok) throw new Error()
+      await api.requestLink(email)
       setSent(true)
     } catch {
       setError('Something went wrong. Please try again.')
