@@ -120,7 +120,7 @@ func (h *Handler) VerifyToken(c *gin.Context) {
 	}
 
 	secure := os.Getenv("APP_ENV") != "development"
-	c.SetCookie(sessionCookie, sessionToken, int(sessionExpiry.Seconds()), "/", "", secure, true)
+	setSessionCookie(c, sessionToken, int(sessionExpiry.Seconds()), secure)
 
 	c.Redirect(http.StatusSeeOther, h.appUrl+"/")
 }
@@ -130,6 +130,16 @@ func (h *Handler) Logout(c *gin.Context) {
 	if err == nil {
 		_ = h.db.DeleteSession(c.Request.Context(), token)
 	}
-	c.SetCookie(sessionCookie, "", -1, "/", "", false, true)
+	secure := os.Getenv("APP_ENV") != "development"
+	setSessionCookie(c, "", -1, secure)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func setSessionCookie(c *gin.Context, value string, maxAge int, secure bool) {
+	if secure {
+		c.SetSameSite(http.SameSiteNoneMode)
+	} else {
+		c.SetSameSite(http.SameSiteLaxMode)
+	}
+	c.SetCookie(sessionCookie, value, maxAge, "/", "", secure, true)
 }
