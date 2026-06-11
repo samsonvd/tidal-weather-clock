@@ -1,0 +1,57 @@
+[tools]
+go = "1.25"
+golangci-lint = "latest"
+"go:github.com/sqlc-dev/sqlc/cmd/sqlc" = "latest"
+"go:github.com/air-verse/air" = "latest"
+"go:github.com/golang-migrate/migrate/v4/cmd/migrate" = { version = "latest", tags = "postgres" }
+
+[tasks.build]
+run = ["go build -o bin/server ./cmd/server", "go build -o bin/fetch ./cmd/fetch"]
+description = "Build frontend then Go binaries"
+
+[tasks.start]
+depends = ["build"]
+run = "./bin/server"
+description = "Build and run the server"
+
+[tasks."start:watch"]
+run = "air"
+description = "Run development server with live reload"
+
+[tasks.test]
+run = "go test ./..."
+description = "Run tests"
+
+[tasks.lint]
+run = "golangci-lint run ./..."
+description = "Run linter"
+
+[tasks.generate]
+run = ["sqlc generate", "templ generate"]
+description = "Run sqlc and templ code generation"
+
+[tasks.fetch]
+run = "go run ./cmd/fetch"
+description = "Fetch weather and tide data for all locations"
+
+[tasks."db:start"]
+run = "docker compose up -d"
+description = "Start local database"
+
+[tasks."db:stop"]
+run = "docker compose down"
+description = "Stop local database"
+
+[tasks."db:reset"]
+run = "docker compose down -v && docker compose up -d"
+description = "Wipe and restart local database"
+
+[tasks."migrate:up"]
+run = "migrate -path migrations -database \"$DATABASE_URL\" up"
+depends = ["db:start"]
+description = "Run pending migrations"
+
+[tasks."migrate:version"]
+run = "migrate -path migrations -database \"$DATABASE_URL\" version"
+depends = ["db:start"]
+description = "Show current migration version"
