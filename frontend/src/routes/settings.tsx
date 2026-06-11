@@ -81,7 +81,7 @@ function SettingsPage() {
           <span className="text-sm font-medium">Settings</span>
           <div className="ml-auto">
             <button
-              onClick={async () => { await api.logout(); window.location.href = '/login' }}
+              onClick={async () => { await api.logout(); window.location.replace('/#/login') }}
               className="text-sm text-muted-foreground hover:text-foreground"
             >
               Sign out

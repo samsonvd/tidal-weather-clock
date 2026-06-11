@@ -50,7 +50,7 @@ function DayPage() {
             )}
             <Link to="/settings" className="text-sm text-muted-foreground hover:text-foreground">Settings</Link>
             <button
-              onClick={async () => { await api.logout(); window.location.href = '/login' }}
+              onClick={async () => { await api.logout(); window.location.replace('/#/login') }}
               className="text-sm text-muted-foreground hover:text-foreground"
             >
               Sign out

@@ -9,7 +9,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     ...options,
   })
   if (res.status === 401) {
-    window.location.href = '/login'
+    window.location.replace('/#/login')
     throw new Error('Unauthorized')
   }
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
