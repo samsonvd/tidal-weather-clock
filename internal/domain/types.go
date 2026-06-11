@@ -58,39 +58,39 @@ type Constraint struct {
 }
 
 type Activity struct {
-	ID          uuid.UUID
-	UserID      uuid.UUID
-	Name        string
-	DurationHrs int
-	WindowStart int
-	WindowEnd   int
-	Constraints []Constraint
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID          uuid.UUID    `json:"id"`
+	UserID      uuid.UUID    `json:"user_id"`
+	Name        string       `json:"name"`
+	DurationHrs int          `json:"duration_hrs"`
+	WindowStart int          `json:"window_start"`
+	WindowEnd   int          `json:"window_end"`
+	Constraints []Constraint `json:"constraints"`
+	CreatedAt   time.Time    `json:"created_at"`
+	UpdatedAt   time.Time    `json:"updated_at"`
 }
 
 type HourlyData struct {
-	ID           uuid.UUID
-	LocationID   uuid.UUID
-	Time         time.Time
-	WindSpeedMS  float64
-	WindDirDeg   float64
-	Weather      WeatherCode
-	TideHeightM  float64
-	FetchedAt    time.Time
+	ID          uuid.UUID   `json:"id"`
+	LocationID  uuid.UUID   `json:"location_id"`
+	Time        time.Time   `json:"time"`
+	WindSpeedMS float64     `json:"wind_speed_ms"`
+	WindDirDeg  float64     `json:"wind_dir_deg"`
+	Weather     WeatherCode `json:"weather_code"`
+	TideHeightM float64     `json:"tide_height_m"`
+	FetchedAt   time.Time   `json:"fetched_at"`
 }
 
 type Location struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
-	Name      string
-	Lat       float64
-	Lon       float64
-	CreatedAt time.Time
+	ID            uuid.UUID `json:"id"`
+	Name          string    `json:"name"`
+	Lat           float64   `json:"lat"`
+	Lon           float64   `json:"lon"`
+	TideStationID string    `json:"tide_station_id"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 type User struct {
-	ID        uuid.UUID
-	Email     string
-	CreatedAt time.Time
+	ID        uuid.UUID `json:"id"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
 }

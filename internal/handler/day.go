@@ -6,12 +6,13 @@ import (
 	"net/http"
 	"time"
 
+	_ "time/tzdata"
+
 	"github.com/gin-gonic/gin"
 	"github.com/samson/tidal-weather-clock/internal/auth"
 	"github.com/samson/tidal-weather-clock/internal/db"
 	"github.com/samson/tidal-weather-clock/internal/domain"
 	"github.com/samson/tidal-weather-clock/internal/scoring"
-	"github.com/samson/tidal-weather-clock/web/templates"
 )
 
 var londonTZ *time.Location
@@ -32,11 +33,18 @@ func NewDayHandler(queries *db.Queries) *DayHandler {
 	return &DayHandler{db: queries}
 }
 
+type dayResponse struct {
+	Date     string               `json:"date"`
+	Location *domain.Location     `json:"location"`
+	Hours    []domain.HourlyData  `json:"hours"`
+	Windows  []scoring.ScoredWindow `json:"windows"`
+}
+
 func (h *DayHandler) Show(c *gin.Context) {
 	date := parseDate(c.Param("date"))
 	user := auth.GetUser(c)
 
-	location, ok := h.resolveLocation(c, user)
+	loc, ok := h.resolveLocation(c, user)
 	if !ok {
 		return
 	}
@@ -45,12 +53,12 @@ func (h *DayHandler) Show(c *gin.Context) {
 	end := start.Add(24 * time.Hour)
 
 	dbHours, err := h.db.GetHourlyDataForLocation(c.Request.Context(), db.GetHourlyDataForLocationParams{
-		LocationID: location.ID,
+		LocationID: loc.ID,
 		Time:       start,
 		Time_2:     end,
 	})
 	if err != nil {
-		c.String(http.StatusInternalServerError, "internal error")
+		internalError(c)
 		return
 	}
 
@@ -60,49 +68,46 @@ func (h *DayHandler) Show(c *gin.Context) {
 	if user != nil && len(hours) > 0 {
 		dbActivities, err := h.db.ListActivities(c.Request.Context(), user.ID)
 		if err != nil {
-			c.String(http.StatusInternalServerError, "internal error")
+			internalError(c)
 			return
 		}
 		activities, err := dbActivitiesToDomain(dbActivities)
 		if err != nil {
-			c.String(http.StatusInternalServerError, "internal error")
+			internalError(c)
 			return
 		}
 		windows = scoring.ScoreDay(activities, hours)
 	}
+	if windows == nil {
+		windows = []scoring.ScoredWindow{}
+	}
 
-	data := templates.DayViewData{
-		Date:     date,
-		PrevDate: date.AddDate(0, 0, -1).Format("2006-01-02"),
-		NextDate: date.AddDate(0, 0, 1).Format("2006-01-02"),
+	domainLoc := domain.Location{
+		ID:            loc.ID,
+		Name:          loc.Name,
+		Lat:           loc.Lat,
+		Lon:           loc.Lon,
+		TideStationID: loc.TideStationID,
+		CreatedAt:     loc.CreatedAt,
+	}
+
+	c.JSON(http.StatusOK, dayResponse{
+		Date:     date.Format("2006-01-02"),
+		Location: &domainLoc,
 		Hours:    hours,
 		Windows:  windows,
-		User:     user,
-		HasData:  len(hours) > 0,
-	}
-
-	if c.GetHeader("Content-Type") == "application/json" {
-		c.Header("Content-Type", "application/json")
-		c.JSON(http.StatusOK, data)
-		return
-	}
-
-	c.Header("Content-Type", "text/html")
-	templates.DayView(data).Render(c.Request.Context(), c.Writer)
+	})
 }
 
-// resolveLocation returns the user's location if logged in, or the first
-// available location for anonymous users. Returns false if it handled the
-// response itself (redirect or error).
 func (h *DayHandler) resolveLocation(c *gin.Context, user *domain.User) (db.Location, bool) {
 	if user != nil {
 		loc, err := h.db.GetLocationByUser(c.Request.Context(), user.ID)
 		if errors.Is(err, sql.ErrNoRows) {
-			c.Redirect(http.StatusSeeOther, "/setup/location")
+			c.JSON(http.StatusOK, dayResponse{Date: parseDate(c.Param("date")).Format("2006-01-02"), Hours: []domain.HourlyData{}, Windows: []scoring.ScoredWindow{}})
 			return db.Location{}, false
 		}
 		if err != nil {
-			c.String(http.StatusInternalServerError, "internal error")
+			internalError(c)
 			return db.Location{}, false
 		}
 		return loc, true
@@ -110,7 +115,8 @@ func (h *DayHandler) resolveLocation(c *gin.Context, user *domain.User) (db.Loca
 
 	locs, err := h.db.GetAllLocations(c.Request.Context())
 	if err != nil || len(locs) == 0 {
-		return db.Location{}, true // no location, HasData will be false
+		c.JSON(http.StatusOK, dayResponse{Date: parseDate(c.Param("date")).Format("2006-01-02"), Hours: []domain.HourlyData{}, Windows: []scoring.ScoredWindow{}})
+		return db.Location{}, false
 	}
 	return locs[0], true
 }
@@ -126,21 +132,4 @@ func parseDate(s string) time.Time {
 
 func truncateToDay(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
-}
-
-func dbHoursToDomain(rows []db.HourlyDatum) []domain.HourlyData {
-	hours := make([]domain.HourlyData, len(rows))
-	for i, r := range rows {
-		hours[i] = domain.HourlyData{
-			ID:          r.ID,
-			LocationID:  r.LocationID,
-			Time:        r.Time,
-			WindSpeedMS: r.WindSpeedMs,
-			WindDirDeg:  r.WindDirDeg,
-			Weather:     domain.WeatherCode(r.WeatherCode),
-			TideHeightM: r.TideHeightM,
-			FetchedAt:   r.FetchedAt,
-		}
-	}
-	return hours
 }

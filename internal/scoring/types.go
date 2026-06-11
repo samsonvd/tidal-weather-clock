@@ -7,18 +7,18 @@ import (
 )
 
 type ConstraintResult struct {
-	Constraint domain.Constraint
-	HourScores []float64 // one score per hour in the window
-	Score      float64   // min of HourScores
-	Passed     bool      // false if required and any hour scored 0
+	Constraint domain.Constraint `json:"constraint"`
+	HourScores []float64         `json:"hour_scores"`
+	Score      float64           `json:"score"`
+	Passed     bool              `json:"passed"`
 }
 
 type ScoredWindow struct {
-	Start             time.Time
-	End               time.Time // exclusive: start of the hour after the last hour
-	Score             float64   // 0.0–1.0; 0 if excluded
-	Excluded          bool      // true if any required constraint failed
-	Activity          domain.Activity
-	Hours             []domain.HourlyData
-	ConstraintResults []ConstraintResult
+	Start             time.Time          `json:"start"`
+	End               time.Time          `json:"end"`
+	Score             float64            `json:"score"`
+	Excluded          bool               `json:"excluded"`
+	Activity          domain.Activity    `json:"activity"`
+	Hours             []domain.HourlyData `json:"hours"`
+	ConstraintResults []ConstraintResult  `json:"constraint_results"`
 }

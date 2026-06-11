@@ -37,8 +37,7 @@ func SessionMiddleware(queries *db.Queries) gin.HandlerFunc {
 
 func RequireAuth(c *gin.Context) {
 	if GetUser(c) == nil {
-		c.Redirect(http.StatusSeeOther, "/login")
-		c.Abort()
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 	c.Next()

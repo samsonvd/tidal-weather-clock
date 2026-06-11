@@ -12,7 +12,6 @@ import (
 	"github.com/samson/tidal-weather-clock/internal/fetcher"
 	"github.com/samson/tidal-weather-clock/internal/handler"
 	"github.com/samson/tidal-weather-clock/internal/mailer"
-	"github.com/samson/tidal-weather-clock/web/templates"
 )
 
 func main() {
@@ -33,7 +32,6 @@ func main() {
 	activityHandler := handler.NewActivityHandler(queries)
 	locationHandler := handler.NewLocationHandler(queries, fetchSvc)
 	dayHandler := handler.NewDayHandler(queries)
-	settingsHandler := handler.NewSettingsHandler(queries)
 
 	r := gin.Default()
 	r.Use(auth.SessionMiddleware(queries))
@@ -42,38 +40,36 @@ func main() {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
-	r.GET("/", dayHandler.Show)
-	r.GET("/day/:date", dayHandler.Show)
-
-	r.GET("/login", func(c *gin.Context) {
-		c.Header("Content-Type", "text/html")
-		templates.Login(c.Query("sent") == "true", c.Query("error") != "").Render(c.Request.Context(), c.Writer)
-	})
 	r.POST("/login", authHandler.RequestLink)
 	r.GET("/auth/verify", authHandler.VerifyToken)
 	r.POST("/auth/logout", authHandler.Logout)
 
-	protected := r.Group("/", auth.RequireAuth)
+	apiV1 := r.Group("/api/v1")
 	{
-		protected.GET("/setup/location", locationHandler.SetupPage)
-		protected.POST("/setup/location", locationHandler.SaveLocation)
+		apiV1.GET("/stations", locationHandler.Stations)
 
-		protected.GET("/settings/activities", settingsHandler.ListActivities)
-		protected.GET("/settings/activities/new", settingsHandler.NewActivity)
-		protected.POST("/settings/activities", settingsHandler.CreateActivity)
-		protected.GET("/settings/activities/:id/edit", settingsHandler.EditActivity)
-		protected.POST("/settings/activities/:id", settingsHandler.UpdateActivity)
-		protected.DELETE("/settings/activities/:id", settingsHandler.DeleteActivity)
+		protected := apiV1.Group("/", auth.RequireAuth)
+		{
+			protected.GET("/me", authHandler.Me)
+			protected.GET("/locations", locationHandler.Get)
+			protected.PUT("/locations", locationHandler.Set)
 
-		protected.GET("/settings/constraint/row", settingsHandler.ConstraintRowFragment)
-		protected.GET("/settings/constraint/fields", settingsHandler.ConstraintFieldsFragment)
+			protected.GET("/activities", activityHandler.List)
+			protected.POST("/activities", activityHandler.Create)
+			protected.PUT("/activities/:id", activityHandler.Update)
+			protected.DELETE("/activities/:id", activityHandler.Delete)
 
-		// Legacy JSON API kept for potential future use.
-		protected.GET("/activities", activityHandler.List)
-		protected.POST("/activities", activityHandler.Create)
-		protected.PUT("/activities/:id", activityHandler.Update)
-		protected.DELETE("/activities/:id", activityHandler.Delete)
+			protected.GET("/day/:date", dayHandler.Show)
+		}
+
 	}
+
+	r.Static("/assets", "frontend/dist/assets")
+	r.StaticFile("/favicon.svg", "frontend/dist/favicon.svg")
+	r.StaticFile("/icons.svg", "frontend/dist/icons.svg")
+	r.NoRoute(func(c *gin.Context) {
+		c.File("frontend/dist/index.html")
+	})
 
 	port := os.Getenv("PORT")
 	if port == "" {
