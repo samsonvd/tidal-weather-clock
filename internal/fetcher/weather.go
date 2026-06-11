@@ -28,7 +28,7 @@ type openMeteoResponse struct {
 
 func FetchWeather(ctx context.Context, lat, lon float64, days int) ([]HourlyWeather, error) {
 	url := fmt.Sprintf(
-		"https://api.open-meteo.com/v1/forecast?latitude=%f&longitude=%f&hourly=wind_speed_10m,wind_direction_10m,weather_code&wind_speed_unit=ms&timezone=UTC&forecast_days=%d",
+		"https://api.open-meteo.com/v1/forecast?latitude=%f&longitude=%f&hourly=wind_speed_10m,wind_direction_10m,weather_code&wind_speed_unit=ms&timezone=UTC&forecast_days=%d&past_days=1",
 		lat, lon, days,
 	)
 

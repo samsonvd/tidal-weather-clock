@@ -49,8 +49,8 @@ func (h *DayHandler) Show(c *gin.Context) {
 		return
 	}
 
-	start := truncateToDay(date.UTC())
-	end := start.Add(24 * time.Hour)
+	start := date
+	end := date.Add(24 * time.Hour)
 
 	dbHours, err := h.db.GetHourlyDataForLocation(c.Request.Context(), db.GetHourlyDataForLocationParams{
 		LocationID: loc.ID,
@@ -130,6 +130,3 @@ func parseDate(s string) time.Time {
 	return time.Now().In(londonTZ)
 }
 
-func truncateToDay(t time.Time) time.Time {
-	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
-}
