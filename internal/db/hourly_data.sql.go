@@ -13,7 +13,7 @@ import (
 )
 
 const getHourlyDataForLocation = `-- name: GetHourlyDataForLocation :many
-SELECT id, location_id, time, wind_speed_ms, wind_dir_deg, weather_code, tide_height_m, fetched_at FROM hourly_data
+SELECT id, location_id, time, wind_speed_ms, wind_dir_deg, weather_code, tide_height_m, fetched_at, temperature_celsius FROM hourly_data
 WHERE location_id = $1
   AND time >= $2
   AND time < $3
@@ -44,6 +44,7 @@ func (q *Queries) GetHourlyDataForLocation(ctx context.Context, arg GetHourlyDat
 			&i.WeatherCode,
 			&i.TideHeightM,
 			&i.FetchedAt,
+			&i.TemperatureCelsius,
 		); err != nil {
 			return nil, err
 		}
@@ -76,21 +77,23 @@ func (q *Queries) UpsertTideHeight(ctx context.Context, arg UpsertTideHeightPara
 }
 
 const upsertWeatherData = `-- name: UpsertWeatherData :exec
-INSERT INTO hourly_data (location_id, time, wind_speed_ms, wind_dir_deg, weather_code, tide_height_m)
-VALUES ($1, $2, $3, $4, $5, 0)
+INSERT INTO hourly_data (location_id, time, wind_speed_ms, wind_dir_deg, weather_code, tide_height_m, temperature_celsius)
+VALUES ($1, $2, $3, $4, $5, 0, $6)
 ON CONFLICT (location_id, time) DO UPDATE SET
-    wind_speed_ms = EXCLUDED.wind_speed_ms,
-    wind_dir_deg  = EXCLUDED.wind_dir_deg,
-    weather_code  = EXCLUDED.weather_code,
-    fetched_at    = now()
+    wind_speed_ms       = EXCLUDED.wind_speed_ms,
+    wind_dir_deg        = EXCLUDED.wind_dir_deg,
+    weather_code        = EXCLUDED.weather_code,
+    temperature_celsius = EXCLUDED.temperature_celsius,
+    fetched_at          = now()
 `
 
 type UpsertWeatherDataParams struct {
-	LocationID  uuid.UUID `json:"location_id"`
-	Time        time.Time `json:"time"`
-	WindSpeedMs float64   `json:"wind_speed_ms"`
-	WindDirDeg  float64   `json:"wind_dir_deg"`
-	WeatherCode string    `json:"weather_code"`
+	LocationID         uuid.UUID `json:"location_id"`
+	Time               time.Time `json:"time"`
+	WindSpeedMs        float64   `json:"wind_speed_ms"`
+	WindDirDeg         float64   `json:"wind_dir_deg"`
+	WeatherCode        string    `json:"weather_code"`
+	TemperatureCelsius float64   `json:"temperature_celsius"`
 }
 
 func (q *Queries) UpsertWeatherData(ctx context.Context, arg UpsertWeatherDataParams) error {
@@ -100,6 +103,7 @@ func (q *Queries) UpsertWeatherData(ctx context.Context, arg UpsertWeatherDataPa
 		arg.WindSpeedMs,
 		arg.WindDirDeg,
 		arg.WeatherCode,
+		arg.TemperatureCelsius,
 	)
 	return err
 }

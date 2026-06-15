@@ -50,14 +50,15 @@ func dbHoursToDomain(rows []db.HourlyDatum) []domain.HourlyData {
 	hours := make([]domain.HourlyData, len(rows))
 	for i, r := range rows {
 		hours[i] = domain.HourlyData{
-			ID:          r.ID,
-			LocationID:  r.LocationID,
-			Time:        r.Time,
-			WindSpeedMS: r.WindSpeedMs,
-			WindDirDeg:  r.WindDirDeg,
-			Weather:     domain.WeatherCode(r.WeatherCode),
-			TideHeightM: r.TideHeightM,
-			FetchedAt:   r.FetchedAt,
+			ID:                 r.ID,
+			LocationID:         r.LocationID,
+			Time:               r.Time,
+			WindSpeedMS:        r.WindSpeedMs,
+			WindDirDeg:         r.WindDirDeg,
+			Weather:            domain.WeatherCode(r.WeatherCode),
+			TideHeightM:        r.TideHeightM,
+			TemperatureCelsius: r.TemperatureCelsius,
+			FetchedAt:          r.FetchedAt,
 		}
 	}
 	return hours

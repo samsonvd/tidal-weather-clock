@@ -15,20 +15,22 @@ type HourlyWeather struct {
 	WindSpeedMS float64
 	WindDirDeg  float64
 	Weather     domain.WeatherCode
+	Temperature float64
 }
 
 type openMeteoResponse struct {
 	Hourly struct {
-		Time             []string  `json:"time"`
-		WindSpeedMS      []float64 `json:"wind_speed_10m"`
-		WindDirDeg       []float64 `json:"wind_direction_10m"`
-		WeatherCode      []int     `json:"weather_code"`
+		Time        []string  `json:"time"`
+		WindSpeedMS []float64 `json:"wind_speed_10m"`
+		WindDirDeg  []float64 `json:"wind_direction_10m"`
+		WeatherCode []int     `json:"weather_code"`
+		Temperature []float64 `json:"temperature_2m"`
 	} `json:"hourly"`
 }
 
 func FetchWeather(ctx context.Context, lat, lon float64, days int) ([]HourlyWeather, error) {
 	url := fmt.Sprintf(
-		"https://api.open-meteo.com/v1/forecast?latitude=%f&longitude=%f&hourly=wind_speed_10m,wind_direction_10m,weather_code&wind_speed_unit=ms&timezone=UTC&forecast_days=%d&past_days=1",
+		"https://api.open-meteo.com/v1/forecast?models=ukmo_seamless&latitude=%f&longitude=%f&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,weather_code&wind_speed_unit=ms&timezone=UTC&forecast_days=%d&past_days=1",
 		lat, lon, days,
 	)
 
@@ -64,6 +66,7 @@ func FetchWeather(ctx context.Context, lat, lon float64, days int) ([]HourlyWeat
 			WindSpeedMS: body.Hourly.WindSpeedMS[i],
 			WindDirDeg:  body.Hourly.WindDirDeg[i],
 			Weather:     wmoToWeatherCode(body.Hourly.WeatherCode[i]),
+			Temperature: body.Hourly.Temperature[i],
 		})
 	}
 	return results, nil

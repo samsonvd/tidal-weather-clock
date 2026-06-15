@@ -74,11 +74,12 @@ func (s *Service) fetchWeather(ctx context.Context, loc db.Location) error {
 	}
 	for _, w := range weather {
 		if err := s.db.UpsertWeatherData(ctx, db.UpsertWeatherDataParams{
-			LocationID:  loc.ID,
-			Time:        w.Time,
-			WindSpeedMs: w.WindSpeedMS,
-			WindDirDeg:  w.WindDirDeg,
-			WeatherCode: string(w.Weather),
+			LocationID:         loc.ID,
+			Time:               w.Time,
+			WindSpeedMs:        w.WindSpeedMS,
+			WindDirDeg:         w.WindDirDeg,
+			WeatherCode:        string(w.Weather),
+			TemperatureCelsius: w.Temperature,
 		}); err != nil {
 			return fmt.Errorf("upsert weather at %s: %w", w.Time, err)
 		}

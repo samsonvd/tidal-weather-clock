@@ -70,14 +70,15 @@ type Activity struct {
 }
 
 type HourlyData struct {
-	ID          uuid.UUID   `json:"id"`
-	LocationID  uuid.UUID   `json:"location_id"`
-	Time        time.Time   `json:"time"`
-	WindSpeedMS float64     `json:"wind_speed_ms"`
-	WindDirDeg  float64     `json:"wind_dir_deg"`
-	Weather     WeatherCode `json:"weather_code"`
-	TideHeightM float64     `json:"tide_height_m"`
-	FetchedAt   time.Time   `json:"fetched_at"`
+	ID                 uuid.UUID   `json:"id"`
+	LocationID         uuid.UUID   `json:"location_id"`
+	Time               time.Time   `json:"time"`
+	WindSpeedMS        float64     `json:"wind_speed_ms"`
+	WindDirDeg         float64     `json:"wind_dir_deg"`
+	Weather            WeatherCode `json:"weather_code"`
+	TideHeightM        float64     `json:"tide_height_m"`
+	TemperatureCelsius float64     `json:"temperature_celsius"`
+	FetchedAt          time.Time   `json:"fetched_at"`
 }
 
 type Location struct {

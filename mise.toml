@@ -27,8 +27,8 @@ run = "golangci-lint run ./..."
 description = "Run linter"
 
 [tasks.generate]
-run = ["sqlc generate", "templ generate"]
-description = "Run sqlc and templ code generation"
+run = ["sqlc generate"]
+description = "Run code generation"
 
 [tasks.fetch]
 run = "go run ./cmd/fetch"
