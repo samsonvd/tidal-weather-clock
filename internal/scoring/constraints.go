@@ -16,6 +16,8 @@ func scoreHour(c domain.Constraint, h domain.HourlyData) float64 {
 		return scoreDirection(h.WindDirDeg, c.Preferred, c.Tolerance)
 	case domain.ConstraintWeather:
 		return scoreWeather(h.Weather, c.Acceptable, c.Ideal)
+	case domain.ConstraintTemperature:
+		return trapezoid(h.TemperatureCelsius, c.AcceptableMin, c.IdealMin, c.IdealMax, c.AcceptableMax)
 	}
 	return 0
 }

@@ -31,10 +31,11 @@ const (
 type ConstraintType string
 
 const (
-	ConstraintWindSpeed  ConstraintType = "wind_speed"
-	ConstraintWindDir    ConstraintType = "wind_dir"
-	ConstraintWeather    ConstraintType = "weather"
-	ConstraintTideHeight ConstraintType = "tide_height"
+	ConstraintWindSpeed   ConstraintType = "wind_speed"
+	ConstraintWindDir     ConstraintType = "wind_dir"
+	ConstraintWeather     ConstraintType = "weather"
+	ConstraintTideHeight  ConstraintType = "tide_height"
+	ConstraintTemperature ConstraintType = "temperature"
 )
 
 type Constraint struct {
