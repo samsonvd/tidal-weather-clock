@@ -5,6 +5,9 @@ golangci-lint = "latest"
 "go:github.com/air-verse/air" = "latest"
 "go:github.com/golang-migrate/migrate/v4/cmd/migrate" = { version = "latest", tags = "postgres" }
 
+[tool_alias]
+migrate = "go:github.com/golang-migrate/migrate/v4/cmd/migrate"
+
 [tasks.build]
 run = ["go build -o bin/server ./cmd/server", "go build -o bin/fetch ./cmd/fetch"]
 description = "Build frontend then Go binaries"
